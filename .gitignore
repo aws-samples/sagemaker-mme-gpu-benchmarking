@@ -1,0 +1,11 @@
+**/__pycache__
+results/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+*.plan
+*.tar.gz
+trt_compile.sh
+triton-serve-pt/
+onnx-models/
