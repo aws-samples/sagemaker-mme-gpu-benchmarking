@@ -1,0 +1,49 @@
+name: "metrics"
+backend: "python"
+max_batch_size: 0
+input  {
+  name: "INPUT__0"
+  data_type: TYPE_STRING
+  dims: [1]
+}
+output [
+    {
+    name: "gpu_utilization"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "gpu_memory_utilization"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "gpu_total_memory"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "gpu_free_memory"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "gpu_used_memory"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "cpu_utilization"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    },
+    {
+    name: "memory_utilization"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+    }
+]
+instance_group [{ kind: KIND_CPU }]
+response_cache {
+enable: False
+}
