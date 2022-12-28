@@ -159,10 +159,10 @@ def generate_summary_plots(load_test_summary: pd.DataFrame):
     return figures
 
 
-def generate_metrics_summary(load_test_summary: pd.DataFrame):
+def generate_metrics_summary(load_test_summary: pd.DataFrame, instance_type: str):
 
     platform_summary = (
-        load_test_summary.query("`Failed Requests` == 0")[
+        load_test_summary.query(f"`Failed Requests` == 0  & instance_type == '{instance_type}'")[
             [
                 "platform",
                 "max_models_loaded",
@@ -195,7 +195,7 @@ def generate_metrics_summary(load_test_summary: pd.DataFrame):
     ax = scaled_summary.T.plot.bar(
         rot=0, ax=ax, width=0.7, color={"pt": "#ee4c2c", "trt": "#75b900"}
     )
-    ax.set_title(model_name)
+    ax.set_title(f"{model_name} on {instance_type}")
     ax.set_ylim(top=1.1)
     ax.get_yaxis().set_ticks([])
     units = ["", " ms", " qps", ""]
