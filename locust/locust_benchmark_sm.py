@@ -7,6 +7,7 @@ from locust import User, task, between, events, LoadTestShape
 
 import numpy as np
 from PIL import Image
+from pathlib import Path
 import random
 import time
 
@@ -37,31 +38,15 @@ import time
 
 content_type = "application/octet-stream"
 
-# nlp_payload = {
-#     "inputs": [
-#         {"name": "INPUT__0", "shape": [1, 128], "datatype": "INT32", "data": np.random.randint(1000, size=128).tolist()},
-#         {"name": "INPUT__1", "shape": [1, 128], "datatype": "INT32", "data": np.zeros(128, dtype=int).tolist()},
-#     ]
-# }
-
-cv_payload = {
-    "inputs": [
-        {
-            "name": "INPUT__0",
-            "shape": [1, 3, 224, 224],
-            "datatype": "FP32",
-            "data": np.random.rand(3, 224,224).tolist(),
-        }
-    ]
-}
 
 class SageMakerClient:
-    _locust_environment = None
 
     def __init__(self):
         super().__init__()
         
         self.session = boto3.session.Session()
+        self.payload = globals()["payload"]
+
         
         self.client=self.session.client("sagemaker-runtime")
         # self.cv_payload = json.dumps(cv_payload)
@@ -69,6 +54,7 @@ class SageMakerClient:
         self.content_type = content_type
 
     def send(self, endpoint_name, use_case, model_name, model_count):
+        
         
         request_meta = {
             "request_type": "InvokeEndpoint",
@@ -83,17 +69,11 @@ class SageMakerClient:
         
         start_perf_counter = time.perf_counter()
         
-        if use_case == 'cv':
-            payload = json.dumps(cv_payload)
-        elif use_case == 'nlp':
-            payload = json.dumps(nlp_payload)
-        else:
-            payload = json.dumps(cv_payload)
             
         try:
             response = self.client.invoke_endpoint(
                 EndpointName=endpoint_name,
-                Body=payload,
+                Body=self.payload,
                 ContentType=self.content_type,
                 TargetModel="{0}-v{1}.tar.gz".format(model_name, random.randint(0, model_count-1)),
             )
@@ -112,21 +92,18 @@ class SageMakerUser(User):
     @events.init_command_line_parser.add_listener
     def _(parser):
         parser.add_argument("--endpoint-name", type=str, default="mme-cv-benchmark-pt", help="sagemaker endpoint you want to invoke")
-        parser.add_argument("--use-case", type=str, default="cv", help="CV or NLP")
         parser.add_argument("--model-name", type=str, default="vgg16", help="name of your model")
-        parser.add_argument("--nlp-payload", type=str, default="", help="sample payload for nlp model benchmarking")
+        parser.add_argument("--use-case", choices=["nlp", "cv"], help="the model's use case", required=True)
+        parser.add_argument("--payload", type=str, help="json file with sample payload for model benchmarking", required=True)
         parser.add_argument("--model-count", type=int, default=5, help="how many models you want to invoke")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-#         config = Config(max_pool_connections=300)
-#         smr_client = boto3.client("sagemaker-runtime", config=config)
-        
+        payload_path = Path(self.environment.parsed_options.payload)
+        globals()["payload"] = payload_path.open("r").read()
         self.client = SageMakerClient()
-        self.client._locust_environment = self.environment
-
-
+        
 class SimpleSendRequest(SageMakerUser):
     wait_time = between(0.05, 0.5)
 
@@ -135,9 +112,7 @@ class SimpleSendRequest(SageMakerUser):
         endpoint_name = self.environment.parsed_options.endpoint_name
         use_case = self.environment.parsed_options.use_case
         model_name = self.environment.parsed_options.model_name
-        model_count = self.environment.parsed_options.model_count
-        if self.environment.parsed_options.nlp_payload != "":
-            globals()["nlp_payload"] = json.loads(self.environment.parsed_options.nlp_payload)
+        model_count = self.environment.parsed_options.model_count        
         
         self.client.send(endpoint_name, use_case, model_name, model_count)
 
