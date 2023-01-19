@@ -14,6 +14,19 @@ def create_endpoint(
     instance_type: str,
     engine: str,
 ):
+    """_summary_
+
+    Args:
+        sm_client: Boto3 SageMaker Client
+        model_name (str): The name of the model 
+        role (str): Execution role for the endpoint
+        container (str): Inference Image URI for 
+        instance_type (str): instance type for the endpoint
+        engine (str): The inference engine to be used (either pt or trt)
+
+    Returns:
+        Tuple[str, str, str]: sm_model_name, endpoint_config_name, endpoint_name
+    """
 
     model_name = model_name.replace("_", "-")
 
@@ -75,6 +88,10 @@ def create_endpoint(
 
 
 def delete_endpoint(sm_client, sm_model_name, endpoint_config_name, endpoint_name):
+    
+    """Deletes an existing endpoint and associated resources
+    """
+    
     sm_client.delete_endpoint(EndpointName=endpoint_name)
     sm_client.delete_endpoint_config(EndpointConfigName=endpoint_config_name)
     sm_client.delete_model(ModelName=sm_model_name)
@@ -82,6 +99,9 @@ def delete_endpoint(sm_client, sm_model_name, endpoint_config_name, endpoint_nam
 
 def get_instance_utilization(runtime_sm_client, endpoint_name):
 
+    """Queries the metrics python model for a given endpoint and returns a dictionary with the instance utilization 
+    """
+    
     payload = {
         "inputs": [
             {
@@ -122,6 +142,21 @@ def run_load_test(
     n_procs=4,
     sample_payload:str = ""
 ):
+    """Runs a load test on the endpoint using Locust
+
+    Args:
+        endpoint_name (str): Name of the endpoint
+        use_case (str): nlp or cv
+        model_name (str): name of the model
+        models_loaded (int): number of models loaded on the endpoint
+        output_path (Union[str, Path]): The path where benchmarking results will be stored
+        print_stdout (bool, optional): Prints the standard output from the locust script. Defaults to False.
+        n_procs (int, optional): Number of concurrent processes to use for the benchmark. Defaults to 4.
+        sample_payload (str, optional): json string containing the sample payload. Defaults to "".
+
+    Returns:
+        Path: path of the benchmark results
+    """
 
     if print_stdout:
         stdout = None

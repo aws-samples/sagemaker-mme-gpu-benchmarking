@@ -37,6 +37,7 @@ def get_model_from_timm(model_name: str, pretrained:bool=True) -> torch.nn.Modul
     return model
 
 def count_parameters(model):
+    """Provides the number of parameters for the given model"""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
@@ -76,6 +77,12 @@ def export_onnx(
     return save_path
 
 def export_onnx_nlp(model, tokenizer, save_path: Union[str, Path] = ".",):
+    
+    """Exports and onnx using the Hugging Face Transformers onnx utility
+
+    Returns:
+        Tuple[Path, Dict]: save path of the onnx artifact and its configuration
+    """
     
     save_path = Path(save_path) / "model.onnx"
     model_kind, model_onnx_config = FeaturesManager.check_supported_model_or_raise(model)
@@ -169,6 +176,17 @@ def generate_triton_config(
     triton_outputs=[],
     save_path: Union[str, Path] = ".",
 ):
+    """Generates a Triton configuration config.pbtxt file 
+
+    Args:
+        platform (str): pt or trt
+        triton_inputs (list, optional): model input configuration. Defaults to [].
+        triton_outputs (list, optional): model output configuration. Defaults to [].
+        save_path (Union[str, Path], optional): Path to where the generated file will be saved. Defaults to ".".
+
+    Returns:
+        Path: Path to the config.pbtxt file
+    """
 
     environment = Environment(loader=FileSystemLoader("model_config_templates/"))
     template = environment.get_template(f"{platform}_nlp_config.pbtxt")
@@ -179,6 +197,13 @@ def generate_triton_config(
     return config_path
 
 def gen_trt_inp_compilation_config(onnx_config, max_seq_len, batch_sizes=[1,16,32]):
+    
+    """Generates the compilation arguments for TensorRT conversion.
+       batch_sizes represent the minShapes, optShapes, and maxShapes for the compilation 
+
+    Returns:
+        _type_: _description_
+    """
     
     trt_input_shape_args = []
     for shape_config, batch_size in zip(
@@ -285,6 +310,16 @@ def compile_trt(
 def package_triton_model(
     model_name: str, model_file_path: Union[str, Path], config_path: Union[str, Path]
 ):
+    """Generates the model.tar.gz model package
+
+    Args:
+        model_name (str): name of the model
+        model_file_path (Union[str, Path]): Location of the serialized model file
+        config_path (Union[str, Path]): Location of the config.pbtxt file
+
+    Returns:
+        Path: The local path of the model.tar.gz file
+    """
 
     model_file_path = Path(model_file_path)
     config_path = Path(config_path)
